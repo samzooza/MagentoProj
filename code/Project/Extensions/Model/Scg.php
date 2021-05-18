@@ -2,36 +2,32 @@
 namespace Project\Extensions\Model;
 
 use Project\Extensions\Model\DataAccess\DataAccess as dataAccess;
+use Project\Extensions\Model\Config\ScgConfig;
 
 class Scg extends DataAccess
 {
-    const URI = 'https://scgyamatodev.flare.works';
-    const USERNAME = 'info_test@scgexpress.co.th';
-    const PASSWORD = 'Initial@1234';
-    private $token = '';
+    private $scgConfig;
 
-    public function GetKey()
+    public function __construct(ScgConfig $scgConfig)
     {
-        return $this->Post(
-            self::URI.'/api/authentication',
-            array(
-                'username' => self::USERNAME,
-                'password' => self::PASSWORD
-            ));
+        $this->scgConfig = $scgConfig;
     }
 
-    public function PlaceOrder($shipperCode, $shipperName, $shipperTel, $shipperAddress, $shipperZipcode,
-        $deliveryAddress, $zipcode, $contactName, $tel, $orderCode,
-        $totalBoxs, $orderDate)
+    public function IsEnabled()
+    {
+        return $this->scgConfig->IsEnabled();
+    }
+
+    public function PlaceOrder($deliveryAddress, $zipcode, $contactName, $tel, $orderCode, $totalBoxs, $orderDate)
     {
         return $this->PostWithKey(
-            self::URI.'/api/orderwithouttrackingnumber',
+            $this->scgConfig->getUri().'/api/orderwithouttrackingnumber',
             array(
-                'ShipperCode' => $shipperCode,
-                'ShipperName' => $shipperName,
-                'ShipperTel' => $shipperTel,
-                'ShipperAddress' => $shipperAddress,
-                'ShipperZipcode' => $shipperZipcode,
+                'ShipperCode' => $this->scgConfig->getShipperCode(),
+                'ShipperName' => $this->scgConfig->getShipperName(),
+                'ShipperTel' => $this->scgConfig->getShipperTel(),
+                'ShipperAddress' => $this->scgConfig->getShipperAddress(),
+                'ShipperZipcode' => $this->scgConfig->getShipperZipcode(),
                 'DeliveryAddress' => $deliveryAddress,
                 'Zipcode' => $zipcode,
                 'ContactName' => $contactName,
@@ -44,22 +40,35 @@ class Scg extends DataAccess
 
     public function GetMobileLabel($tracking_numbers)
     {
-        $response = $this->GetKey();
-        if($response['status'])
-            return self::URI.'/api/getMobileLabel?token='.$response['token'].'&tracking_number='.$tracking_numbers;
-    
-        return $response;
+        return $this->PostWithKey(
+            $this->scgConfig->getUri().'/api/getMobileLabel',
+            array(
+                'tracking_number' => $tracking_numbers
+            ));
     }
 
     function PostWithKey($uri, $param)
     {
-        $response = $this->GetKey();
+        // get authentication
+        $response = json_decode($this->GetKey(), true);
+
         if($response['status'])
         {
+            // add postback token into next parameters
             $param['token'] = $response['token'];
             return $this->Post($uri, $param);
         }
 
         return $response;
+    }
+
+    public function GetKey()
+    {
+        return $this->Post(
+            $this->scgConfig->getUri().'/api/authentication',
+            array(
+                'username' => $this->scgConfig->getUsername(),
+                'password' => $this->scgConfig->getPassword()
+            ));
     }
 }

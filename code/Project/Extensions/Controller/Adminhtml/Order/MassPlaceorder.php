@@ -50,23 +50,35 @@ class MassPlaceorder extends \Magento\Sales\Controller\Adminhtml\Order\AbstractM
      */
     protected function massAction(AbstractCollection $collection)
     {
+        // check scg configuration is enabled 
+        if(!$this->scg->IsEnabled())
+        {
+            $this->messageManager->addError(__(
+                'This function is disabled, please check the configuration in "Stores > Configuration > SCG Express".'
+            ));
+
+            return $this->Refresh();
+        }
+
         foreach ($collection->getItems() as $order)
-        {   // check the order can ship out
+        {
+            // check the order can ship out
             if (!$order->canShip()) {
                 $this->messageManager->addError(__('ID '.strval($order->getEntityId()).': You can\'t create an shipment.'));
                 continue;
             }
 
             // place order to SCG Express
-            $response = $this->PlaceOrder($order);
-            if(!$response['status'])
+            $response = json_decode($this->PlaceOrder($order), true);
+
+            if(isset($response['status']) && !$response['status'])
             {
                 $this->messageManager->addError(__('ID '.strval($order->getEntityId()).': '.$response['message']));
                 continue;
             }
 
             $this->Ship($order, $response['trackingNumber']);
-            $this->messageManager->addSuccess(__('ID '.strval($order->getEntityId()).': Process successful.'));
+            $this->messageManager->addSuccess(__('ID '.strval($order->getEntityId()).': Successful with tracking number(s): '.$response['trackingNumber'].'.'));
         }
 
         return $this->Refresh();
@@ -77,11 +89,6 @@ class MassPlaceorder extends \Magento\Sales\Controller\Adminhtml\Order\AbstractM
         $shippingAddress = $order->getShippingAddress();
 
         return $this->scg->PlaceOrder(
-            '00214110143',
-            'Siam Agri Supply Co., Ltd.',
-            '0218565989',
-            '386 Srinakarin Road, Nongbon, Prawet, Bangkok 10250, Thailand',
-            '10250',
             $shippingAddress->getData("street").' '.$shippingAddress->getData("city"),
             $shippingAddress->getData("postcode"),
             $shippingAddress->getData("firstname").' '.$shippingAddress->getData("lastname"),
@@ -135,7 +142,7 @@ class MassPlaceorder extends \Magento\Sales\Controller\Adminhtml\Order\AbstractM
             $shipment->save();
             $shipment->getOrder()->save();
 
-            // send email
+            // to send email notification
             // $this->_objectManager->create('Magento\Shipping\Model\ShipmentNotifier')
             // ->notify($shipment);
 
@@ -148,6 +155,7 @@ class MassPlaceorder extends \Magento\Sales\Controller\Adminhtml\Order\AbstractM
     protected function Refresh(){
         $resultRedirect = $this->resultRedirectFactory->create();
         $resultRedirect->setPath($this->getComponentRefererUrl());
+        
         return $resultRedirect;
     } 
 }

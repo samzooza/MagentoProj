@@ -20,8 +20,6 @@ class MassPrintShippingLabel extends \Magento\Sales\Controller\Adminhtml\Order\A
     protected $fileFactory;
     protected $filesystem;
     protected $scg;
-    // private $reAuthenFlag;
-    // private $token = '';
     
     /**
      * @param Context $context
@@ -54,6 +52,16 @@ class MassPrintShippingLabel extends \Magento\Sales\Controller\Adminhtml\Order\A
      */
     protected function massAction(AbstractCollection $collection)
     {
+        // check scg configuration is enabled 
+        if(!$this->scg->IsEnabled())
+        {
+            $this->messageManager->addError(__(
+                'This function is disabled, please check the configuration in "Stores > Configuration > SCG Express".'
+            ));
+
+            return $this->Refresh();
+        }
+
         $trackingNumbers = array();
 
         foreach ($collection->getItems() as $order)
@@ -61,34 +69,50 @@ class MassPrintShippingLabel extends \Magento\Sales\Controller\Adminhtml\Order\A
             $tracksCollection = $order->getTracksCollection();
 
             foreach ($tracksCollection->getItems() as $track)
-                if($track->getTrackNumber()!='')
+                if(!empty($track->getTrackNumber()))
                     array_push($trackingNumbers, $track->getTrackNumber());
         }
-        
-        if(isset($trackingNumbers))
+
+        if(!empty($trackingNumbers))
         {
             // Print shipping labels
-            $response = $this->scg->GetMobileLabel(
-                join(",", $trackingNumbers));
+            $file = $this->scg->GetMobileLabel(join(",", $trackingNumbers));
+            
+            /* to debug reponse value */
+            //$this->messageManager->addError(__(strlen($file)));
+            //return $this->Refresh();
+            /* end to debug reponse value */
 
-            // Save file into temp
-            $filename = $this->SaveFile($response);
+            // Save file into temp (\var\tmp)
+            $filename = $this->SaveFile($file);
 
             return $this->fileFactory->create('shipping_labels.pdf', [
                 'type' => 'filename',
                 'value' => $filename,
-                'rm' => true,
+                'rm' => true
             ]);
+        }
+        else
+        {
+            $this->messageManager->addError(__('You can\'t print SCG shipping labels, not found SCG tracking number.'));
+            return $this->Refresh();
         }
     }
 
-    public function SaveFile($response)
+    public function SaveFile($file)
     {
         $directory = $this->filesystem->getDirectoryWrite(DirectoryList::TMP);
         $destination = $directory->getAbsolutePath(sprintf('export-%s.pdf', date('Ymd-His')));
 
-        stream_copy_to_stream(fopen($response,"r"), fopen($destination, "w"));
+        file_put_contents($destination, $file);
 
         return $destination;
     }
+
+    protected function Refresh(){
+        $resultRedirect = $this->resultRedirectFactory->create();
+        $resultRedirect->setPath($this->getComponentRefererUrl());
+
+        return $resultRedirect;
+    } 
 }
