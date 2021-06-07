@@ -6,6 +6,7 @@ use Project\Extensions\Model\Config\ScgConfig;
 
 class Scg extends DataAccess
 {
+    /* Ref: http://c2.scgexpress.co.th/documentationapi/v5_4 */
     private $scgConfig;
 
     public function __construct(ScgConfig $scgConfig)
@@ -42,6 +43,15 @@ class Scg extends DataAccess
     {
         return $this->PostWithKey(
             $this->scgConfig->getUri().'/api/getMobileLabel',
+            array(
+                'tracking_number' => $tracking_numbers
+            ));
+    }
+
+    public function GetTrackingInformation($tracking_numbers)
+    {
+        return $this->PostWithKey(
+            $this->scgConfig->getUri().'/api/gethistoricalstatusbytrackingnumber',
             array(
                 'tracking_number' => $tracking_numbers
             ));

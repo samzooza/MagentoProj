@@ -1,0 +1,88 @@
+<?php
+/**
+ * Copyright © Magento, Inc. All rights reserved.
+ * See COPYING.txt for license details.
+ */
+
+use Magento\Framework\View\Element\Template;
+
+// @codingStandardsIgnoreFile
+
+/** @var $block \Project\Extensions\Block\Tracking\Popup */
+
+$results = $block->getTrackingInfo();
+
+?>
+<div class="page tracking">
+    <?php if (!empty($results)): ?>
+        <?php foreach ($results as $shipId => $result): ?>
+            <?php if ($shipId): ?>
+                <div class="order subtitle caption"><?php /* @noEscape */ echo $block->escapeHtml(__('Shipment #')) . $shipId; ?></div>
+            <?php endif; ?>
+            <?php if (!empty($result)): ?>
+                <?php foreach ($result as $counter => $track): ?>
+                    <div class="table-wrapper">
+                        <?php
+                            $block->addChild('shipping.tracking.details.' . $counter, Template::class, [
+                                'track' => $track,
+                                'template' => 'Magento_Shipping::tracking/details.phtml',
+                                'storeSupportEmail' => $block->getStoreSupportEmail()
+                            ]
+                        );
+                        ?>
+                        <?php /* @noEscape */ echo $block->getChildHtml('shipping.tracking.details.' . $counter); ?>
+                        <!-- SCG Tracking Information -->
+                        <?php $response = $block->getSCGTrackingDetail($track) ?>
+                        <?php if($response['status_code'] == 100): ?>
+                            <?php $parcel_data = $response['parcel_data']; ?>
+                            <?php if(count($parcel_data)) : ?>
+                                <?php foreach ($parcel_data as $x => $data): ?>
+                                    <?php $tracking_data = $data['tracking_data']; ?>
+                                    <div class="post-content">
+                                        <table style="width:100%; line-height: 0.5;">
+                                            <tr style="background-color:#f1f1f1;">
+                                                <th style="width:25%; border: 1px solid white; border-collapse: collapse;"><?php echo __('วันที่') ?></th>
+                                                <th style="width:30%; border: 1px solid white; border-collapse: collapse;"><?php echo __('สาขา') ?></th>
+                                                <th style="border: 1px solid white; border-collapse: collapse;"><?php echo __('สถานะ') ?></th>
+                                            </tr>
+                                            <?php if(count($tracking_data)) : ?>
+                                                <?php foreach ($tracking_data as $y => $item): ?>
+                                                    <tr>
+                                                        <td style="border: 1px solid white; border-collapse: collapse;"><?php echo $item['date_input'] ?></td>
+                                                        <td style="border: 1px solid white; border-collapse: collapse;"><?php echo $item['branch_name'] ?></td>
+                                                        <td style="border: 1px solid white; border-collapse: collapse;"><?php echo $item['status_name'] ?></td>
+                                                    </tr>
+                                                <?php endforeach; ?>
+                                            <?php endif; ?>
+                                        </table>
+                                    </div>
+                                <?php endforeach; ?>
+                            <?php endif; ?>        
+                        <?php else: ?>
+                            <div class="message info empty">
+                                <div><?php echo $response['message']; ?></div>
+                            </div>
+                        <?php endif; ?>
+                        <!-- End SCG Tracking Information -->
+                    </div>
+                <?php endforeach; ?>
+            <?php else: ?>
+                <div class="message info empty">
+                    <div><?php echo $block->escapeHtml(__('There is no tracking available for this shipment.')); ?></div>
+                </div>
+            <?php endif; ?>
+        <?php endforeach; ?>
+    <?php else: ?>
+        <div class="message info empty">
+            <div><?= $block->escapeHtml(__('There is no tracking available.')) ?></div>
+        </div>
+    <?php endif; ?>
+    <!-- <div class="actions">
+        <button type="button"
+                title="<?= $block->escapeHtml(__('Close Window')) ?>"
+                class="action close"
+                onclick="window.close(); window.opener.focus();">
+            <span><?= $block->escapeHtml(__('Close Window')) ?></span>
+        </button>
+    </div> -->
+</div>
