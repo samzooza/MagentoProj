@@ -40,7 +40,7 @@ $results = $block->getTrackingInfo();
                                     <?php $tracking_data = $data['tracking_data']; ?>
                                     <div class="post-content">
                                         <table style="width:100%; line-height: 0.5;">
-                                            <tr style="background-color:#f1f1f1;">
+                                            <tr style="background-color:tomato; color:white;">
                                                 <th style="width:25%; border: 1px solid white; border-collapse: collapse;"><?php echo __('วันที่') ?></th>
                                                 <th style="width:30%; border: 1px solid white; border-collapse: collapse;"><?php echo __('สาขา') ?></th>
                                                 <th style="border: 1px solid white; border-collapse: collapse;"><?php echo __('สถานะ') ?></th>
@@ -77,12 +77,4 @@ $results = $block->getTrackingInfo();
             <div><?= $block->escapeHtml(__('There is no tracking available.')) ?></div>
         </div>
     <?php endif; ?>
-    <!-- <div class="actions">
-        <button type="button"
-                title="<?= $block->escapeHtml(__('Close Window')) ?>"
-                class="action close"
-                onclick="window.close(); window.opener.focus();">
-            <span><?= $block->escapeHtml(__('Close Window')) ?></span>
-        </button>
-    </div> -->
 </div>
